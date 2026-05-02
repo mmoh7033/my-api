@@ -1,145 +1,137 @@
 const express = require('express');
-const app = express();
+const mongoose = require('mongoose');
 
+const app = express();
 app.use(express.json());
 
-const API_KEY = "MMM-KHU123";
+// 🔥 MongoDB Connection
+mongoose.connect("mongodb://mmohd7033_db_user:6k44G6EvHueFWTfZ@ac-kt5zdne-shard-00-00.nar9cvw.mongodb.net:27017,ac-kt5zdne-shard-00-01.nar9cvw.mongodb.net:27017,ac-kt5zdne-shard-00-02.nar9cvw.mongodb.net:27017/servicepulseDB?ssl=true&replicaSet=atlas-pia3pi-shard-0&authSource=admin&retryWrites=true&w=majority")
+.then(() => console.log("MongoDB connected"))
+.catch(err => console.log("DB Error:", err));
 
-let services = [];
+// 🔥 Schema
+const serviceSchema = new mongoose.Schema({
+  clientId: String,
+  mobile: String,
+  service: String,
+  status: String,
+  date: String
+});
 
+const Service = mongoose.model("Service", serviceSchema);
+
+// 🔐 API Key Middleware
 function checkApiKey(req, res, next) {
-    const clientId = req.headers['client-id'];
+  const clientId = req.headers['client-id'];
+  const mobile = req.headers.mobile;
 
-    if (!clientId) {
-        return res.status(401).json({ message: "client-id missing" });
-    }
+  if (!clientId) {
+    return res.status(401).json({ message: "client-id missing ❌" });
+  }
 
-    if (clientId !== API_KEY) {
-        return res.status(403).json({ message: "invalid client-id" });
-    }
+  if (!mobile) {
+    return res.status(400).json({ message: "mobile header missing ❌" });
+  }
 
-    next();
+  next();
 }
 
-/* ================= POST ================= */
-app.post('/customer-services', checkApiKey, (req, res) => {
-    const mobile = req.headers.mobile;
-
-    if (!mobile) {
-        return res.status(400).json({ message: "Mobile header required" });
-    }
-
+// 🟢 POST (CREATE)
+app.post('/customer-services', checkApiKey, async (req, res) => {
+  try {
     const record = {
-        mobile: mobile,
-        service: req.body.service,
-        status: req.body.status,
-        date: req.body.date,
-        amount: req.body.amount
+      clientId: req.headers['client-id'],
+      mobile: req.headers.mobile,
+      service: req.body.service.trim().toLowerCase(), // ✅ normalize
+      status: req.body.status,
+      date: req.body.date
     };
 
-    services.push(record);
+    await Service.create(record);
 
-    res.status(201).json(record);
+    res.json({ message: "created successfully ✔" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-
-/* ================= GET ================= */
-app.get('/customer-services', checkApiKey, (req, res) => {
+// 🔵 GET (READ + CLEAN FORMAT)
+app.get('/customer-services', checkApiKey, async (req, res) => {
+  try {
+    const clientId = req.headers['client-id'];
     const mobile = req.headers.mobile;
 
-    if (!mobile) {
-        return res.status(400).json({ message: "Mobile header required" });
+    const records = await Service.find({ clientId, mobile });
+
+    if (records.length === 0) {
+      return res.json({ message: "No history found" });
     }
 
-    const result = services.filter(s => s.mobile === mobile);
+    let services = {};
 
-    if (result.length === 0) {
-        return res.status(404).json({ message: "No history found" });
-    }
-
-    let lobStatus = {};
-
-    result.forEach(s => {
-        if (s.status === "disconnected") {
-            lobStatus[s.service] = {
-                status: "disconnected",
-                disconnectedDate: s.date,
-                adjustedAmnt: s.amount || "0"
-            };
-        } else {
-            lobStatus[s.service] = "activated";
-        }
+    records.forEach(r => {
+      services[r.service] = {
+        id: r._id,
+        status: r.status
+      };
     });
 
-    const response = {
-        MobileDetails: [
-            {
-                mobileNo: mobile,
-                lobStatus: lobStatus
-            }
-        ]
-    };
-
-    res.json(response);
-});
-
-
-/* ================= PUT ================= */
-app.put('/customer-services/:service', checkApiKey, (req, res) => {
-    const mobile = req.headers.mobile;
-    const service = req.params.service;
-
-    if (!mobile) {
-        return res.status(400).json({ message: "Mobile header required" });
-    }
-
-    let found = false;
-
-    services = services.map(s => {
-        if (s.mobile === mobile && s.service === service) {
-            found = true;
-            return {
-                ...s,
-                status: req.body.status || s.status,
-                date: req.body.date || s.date,
-                amount: req.body.amount || s.amount
-            };
-        }
-        return s;
+    res.json({
+      clientId,
+      mobile,
+      services
     });
 
-    if (!found) {
-        return res.status(404).json({ message: "Service not found" });
-    }
-
-    res.json({ message: "Updated successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-
-/* ================= DELETE ================= */
-app.delete('/customer-services/:service', checkApiKey, (req, res) => {
+// 🟡 PUT (UPDATE)
+app.put('/customer-services/:service', checkApiKey, async (req, res) => {
+  try {
+    const clientId = req.headers['client-id'];
     const mobile = req.headers.mobile;
-    const service = req.params.service;
+    const service = req.params.service.trim().toLowerCase();
 
-    if (!mobile) {
-        return res.status(400).json({ message: "Mobile header required" });
-    }
-
-    const initialLength = services.length;
-
-    services = services.filter(s => 
-        !(s.mobile === mobile && s.service === service)
+    const result = await Service.updateOne(
+      { clientId, mobile, service },
+      { status: req.body.status, date: req.body.date }
     );
 
-    if (services.length === initialLength) {
-        return res.status(404).json({ message: "Service not found" });
+    if (result.matchedCount === 0) {
+      return res.json({ message: "No record found to update ❌" });
     }
 
-    res.json({ message: "Deleted successfully" });
+    res.json({ message: "updated successfully ✔" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
+// 🔴 DELETE (SINGLE SERVICE)
+app.delete('/customer-services/:service', checkApiKey, async (req, res) => {
+  try {
+    const clientId = req.headers['client-id'];
+    const mobile = req.headers.mobile;
+    const service = req.params.service.trim().toLowerCase();
 
-/* ================= SERVER ================= */
+    const result = await Service.deleteMany({ clientId, mobile, service });
+
+    if (result.deletedCount === 0) {
+      return res.json({ message: "No record found ❌" });
+    }
+
+    res.json({
+      message: "deleted successfully ✔",
+      deletedCount: result.deletedCount
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+// 🚀 SERVER START
 app.listen(3000, () => {
-    console.log("Server running on port 3000 🔥");
+  console.log("Server running on port 3000 🔥");
 });
