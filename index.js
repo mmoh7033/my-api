@@ -3,10 +3,26 @@ const app = express();
 
 app.use(express.json());
 
+const API_KEY = "MMM-KHU123";
+
 let services = [];
 
+function checkApiKey(req, res, next) {
+    const clientId = req.headers['client-id'];
+
+    if (!clientId) {
+        return res.status(401).json({ message: "client-id missing" });
+    }
+
+    if (clientId !== API_KEY) {
+        return res.status(403).json({ message: "invalid client-id" });
+    }
+
+    next();
+}
+
 /* ================= POST ================= */
-app.post('/services', (req, res) => {
+app.post('/services', checkApiKey, (req, res) => {
     const mobile = req.headers.mobile;
 
     if (!mobile) {
@@ -28,7 +44,7 @@ app.post('/services', (req, res) => {
 
 
 /* ================= GET ================= */
-app.get('/services', (req, res) => {
+app.get('/services', checkApiKey, (req, res) => {
     const mobile = req.headers.mobile;
 
     if (!mobile) {
