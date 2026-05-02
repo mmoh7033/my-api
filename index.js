@@ -22,7 +22,7 @@ function checkApiKey(req, res, next) {
 }
 
 /* ================= POST ================= */
-app.post('/services', checkApiKey, (req, res) => {
+app.post('/customer-services', checkApiKey, (req, res) => {
     const mobile = req.headers.mobile;
 
     if (!mobile) {
@@ -44,7 +44,7 @@ app.post('/services', checkApiKey, (req, res) => {
 
 
 /* ================= GET ================= */
-app.get('/services', checkApiKey, (req, res) => {
+app.get('/customer-services', checkApiKey, (req, res) => {
     const mobile = req.headers.mobile;
 
     if (!mobile) {
@@ -85,7 +85,7 @@ app.get('/services', checkApiKey, (req, res) => {
 
 
 /* ================= PUT ================= */
-app.put('/services/:service', (req, res) => {
+app.put('/customer-services/:service', checkApiKey, (req, res) => {
     const mobile = req.headers.mobile;
     const service = req.params.service;
 
@@ -117,7 +117,7 @@ app.put('/services/:service', (req, res) => {
 
 
 /* ================= DELETE ================= */
-app.delete('/services/:service', (req, res) => {
+app.delete('/customer-services/:service', checkApiKey, (req, res) => {
     const mobile = req.headers.mobile;
     const service = req.params.service;
 
