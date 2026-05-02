@@ -41,17 +41,17 @@ app.get('/services', (req, res) => {
         return res.status(404).json({ message: "No history found" });
     }
 
-    let lob = {};
+    let lobStatus = {};
 
     result.forEach(s => {
         if (s.status === "disconnected") {
-            lob[s.service] = {
+            lobStatus[s.service] = {
                 status: "disconnected",
                 disconnectedDate: s.date,
                 adjustedAmnt: s.amount || "0"
             };
         } else {
-            lob[s.service] = "activated";
+            lobStatus[s.service] = "activated";
         }
     });
 
@@ -59,7 +59,7 @@ app.get('/services', (req, res) => {
         MobileDetails: [
             {
                 mobileNo: mobile,
-                lob: lob
+                lobStatus: lobStatus
             }
         ]
     };
