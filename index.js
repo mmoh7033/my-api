@@ -48,17 +48,27 @@ function checkApiKey(req, res, next) {
 // 🟢 POST (CREATE)
 app.post('/customer-services', checkApiKey, async (req, res) => {
   try {
-    const record = {
-      clientId: req.headers['client-id'],
-      mobile: req.headers.mobile,
-      service: req.body.service.trim().toLowerCase(), // ✅ normalize
-      status: req.body.status,
-      date: req.body.date
-    };
+    if (!Array.isArray(req.body)) {
+      return res.status(400).json({ message: "Body must be an array of service objects" });
+    }
 
-    await Service.create(record);
+    const records = req.body.map(item => {
+      if (!item.service || !item.status) {
+        throw new Error("Each service must have service and status");
+      }
 
-    res.json({ message: "created successfully ✔" });
+      return {
+        clientId: req.headers['client-id'],
+        mobile: req.headers.mobile,
+        service: item.service.trim().toLowerCase(), // ✅ normalize
+        status: item.status,
+        date: item.date || new Date().toISOString().split('T')[0]  // default to today if not provided
+      };
+    });
+
+    await Service.insertMany(records);
+
+    res.json({ message: "Services created successfully ✔" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
