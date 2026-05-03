@@ -48,11 +48,11 @@ function checkApiKey(req, res, next) {
 // 🟢 POST (CREATE)
 app.post('/customer-services', checkApiKey, async (req, res) => {
   try {
-    if (!Array.isArray(req.body)) {
-      return res.status(400).json({ message: "Body must be an array of service objects" });
+    if (!req.body.customerServicesRequest || !Array.isArray(req.body.customerServicesRequest)) {
+      return res.status(400).json({ message: "Body must contain customerServicesRequest as an array of service objects" });
     }
 
-    const records = req.body.map(item => {
+    const records = req.body.customerServicesRequest.map(item => {
       if (!item.service || !item.status) {
         throw new Error("Each service must have service and status");
       }
