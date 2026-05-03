@@ -170,16 +170,16 @@ app.put('/customer-services/:service', checkApiKey, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
-// 🔴 DELETE PARTIALLY 
+  
 app.delete('/customer-services', checkApiKey, async (req, res) => {
   try {
     const clientId = req.headers['client-id'];
     const mobile = req.headers.mobile;
 
-    const services = req.body.services;
+    // 🔥 Safe body handling
+    const services = req.body?.services;
 
-    // 🟡 Partial delete
+    // 🟡 PARTIAL DELETE
     if (Array.isArray(services) && services.length > 0) {
 
       const normalizedServices = services.map(s =>
@@ -204,7 +204,7 @@ app.delete('/customer-services', checkApiKey, async (req, res) => {
       });
     }
 
-    // 🔴 Full delete (your existing logic)
+    // 🔴 FULL DELETE (no body)
     const result = await Service.deleteMany({ clientId, mobile });
 
     if (result.deletedCount === 0) {
