@@ -42,6 +42,12 @@ function checkApiKey(req, res, next) {
     return res.status(400).json({ message: "mobile header missing ❌" });
   }
 
+  if (!/^[0-9]{10}$/.test(mobile)) {
+    return res.status(400).json({
+      message: "Invalid mobile number ❌"
+    });
+  }
+
   next();
 }
 
