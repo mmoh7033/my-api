@@ -171,21 +171,50 @@ app.put('/customer-services/:service', checkApiKey, async (req, res) => {
   }
 });
 
-// 🔴 DELETE (SINGLE SERVICE)
-app.delete('/customer-services/:service', checkApiKey, async (req, res) => {
+// 🔴 DELETE PARTIALLY 
+app.delete('/customer-services', checkApiKey, async (req, res) => {
   try {
     const clientId = req.headers['client-id'];
     const mobile = req.headers.mobile;
-    const service = req.params.service.trim().toLowerCase();
 
-    const result = await Service.deleteMany({ clientId, mobile, service });
+    const services = req.body.services;
+
+    // 🟡 Partial delete
+    if (Array.isArray(services) && services.length > 0) {
+
+      const normalizedServices = services.map(s =>
+        s.trim().toLowerCase()
+      );
+
+      const result = await Service.deleteMany({
+        clientId,
+        mobile,
+        service: { $in: normalizedServices }
+      });
+
+      if (result.deletedCount === 0) {
+        return res.status(404).json({
+          message: "No matching services found ❌"
+        });
+      }
+
+      return res.json({
+        message: "Selected services deleted ✔",
+        deletedCount: result.deletedCount
+      });
+    }
+
+    // 🔴 Full delete (your existing logic)
+    const result = await Service.deleteMany({ clientId, mobile });
 
     if (result.deletedCount === 0) {
-      return res.json({ message: "No record found ❌" });
+      return res.status(404).json({
+        message: "No records found ❌"
+      });
     }
 
     res.json({
-      message: "deleted successfully ✔",
+      message: "All services deleted successfully ✔",
       deletedCount: result.deletedCount
     });
 
