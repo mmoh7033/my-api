@@ -3,6 +3,14 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 
 const app = express();
+
+// 🔥 FIX (IMPORTANT)
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "client-id", "mobile"]
+}));
+
 app.use(express.json());
 
 // 🔥 MongoDB Connection
