@@ -148,17 +148,23 @@ app.put('/customer-services/:service', checkApiKey, async (req, res) => {
     const service = req.params.service.trim().toLowerCase();
     const status = req.body.status.trim().toLowerCase();
 
-    const result = await Service.findOneAndUpdate(
-      { clientId, mobile, service },
-      { status },
-      { new: true }
-    );
+    // 🔥 Step 1: find existing
+    const existing = await Service.findOne({ clientId, mobile, service });
 
-    if (!result) {
+    if (!existing) {
       return res.status(404).json({ message: "Record not found ❌" });
     }
 
-    res.json({ message: "updated successfully ✔", data: result });
+    // 🔥 Step 2: compare
+    if (existing.status === status) {
+      return res.json({ message: "Already up to date ⚠️" });
+    }
+
+    // 🔥 Step 3: update
+    existing.status = status;
+    await existing.save();
+
+    res.json({ message: "updated successfully ✔", data: existing });
 
   } catch (err) {
     res.status(500).json({ error: err.message });
