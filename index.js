@@ -54,27 +54,55 @@ function checkApiKey(req, res, next) {
 // 🟢 POST (CREATE)
 app.post('/customer-services', checkApiKey, async (req, res) => {
   try {
-    if (!req.body.customerServicesRequest || !Array.isArray(req.body.customerServicesRequest)) {
-      return res.status(400).json({ message: "Body must contain customerServicesRequest as an array of service objects" });
+    const clientId = req.headers['client-id'];
+    const mobile = req.headers.mobile;
+
+    const servicesArray = req.body.customerServicesRequest;
+
+    if (!Array.isArray(servicesArray) || servicesArray.length === 0) {
+      return res.status(400).json({ message: "Invalid request body ❌" });
     }
 
-    const records = req.body.customerServicesRequest.map(item => {
-      if (!item.service || !item.status) {
-        throw new Error("Each service must have service and status");
-      }
+    // 🔥 normalize input
+    const normalized = servicesArray.map(s => ({
+      service: s.service.trim().toLowerCase(),
+      status: s.status.trim().toLowerCase(),
+      date: s.date
+    }));
 
-      return {
-        clientId: req.headers['client-id'],
-        mobile: req.headers.mobile,
-        service: item.service.trim().toLowerCase(), // ✅ normalize
-        status: item.status,
-        date: item.date || new Date().toISOString().split('T')[0]  // default to today if not provided
-      };
+    const serviceNames = normalized.map(s => s.service);
+
+    // 🔥 check duplicates in DB
+    const existing = await Service.find({
+      clientId,
+      mobile,
+      service: { $in: serviceNames }
     });
 
+    if (existing.length > 0) {
+      return res.status(409).json({
+        message: "One or more services already exist ❌",
+        existingServices: existing.map(e => e.service)
+      });
+    }
+
+    // 🔥 prepare records
+    const records = normalized.map(s => ({
+      clientId,
+      mobile,
+      service: s.service,
+      status: s.status,
+      date: s.date
+    }));
+
+    // 🔥 insert all
     await Service.insertMany(records);
 
-    res.json({ message: "Services created successfully ✔" });
+    res.status(201).json({
+      message: "All services created successfully ✔",
+      count: records.length
+    });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -118,17 +146,20 @@ app.put('/customer-services/:service', checkApiKey, async (req, res) => {
     const clientId = req.headers['client-id'];
     const mobile = req.headers.mobile;
     const service = req.params.service.trim().toLowerCase();
+    const status = req.body.status.trim().toLowerCase();
 
-    const result = await Service.updateOne(
+    const result = await Service.findOneAndUpdate(
       { clientId, mobile, service },
-      { status: req.body.status, date: req.body.date }
+      { status },
+      { new: true }
     );
 
-    if (result.matchedCount === 0) {
-      return res.json({ message: "No record found to update ❌" });
+    if (!result) {
+      return res.status(404).json({ message: "Record not found ❌" });
     }
 
-    res.json({ message: "updated successfully ✔" });
+    res.json({ message: "updated successfully ✔", data: result });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
