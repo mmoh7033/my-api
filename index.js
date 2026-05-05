@@ -46,7 +46,8 @@ function checkApiKey(req, res, next) {
 
   if (!/^[0-9]{10}$/.test(mobile)) {
     return res.status(400).json({
-      message: "Invalid mobile number ❌"
+      message: "Invalid mobile number ❌",
+      allowed: "10 digits only"
     });
   }
 
