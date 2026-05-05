@@ -69,7 +69,20 @@ app.post('/customer-services', checkApiKey, async (req, res) => {
       status: s.status.trim().toLowerCase(),
       date: s.date
     }));
+// 🔥 allowed services
+const ALLOWED_SERVICES = ["voice", "video", "hsd"];
 
+// 🔥 validate services
+const invalidServices = normalized.filter(
+  s => !ALLOWED_SERVICES.includes(s.service)
+);
+
+if (invalidServices.length > 0) {
+  return res.status(400).json({
+    message: "Invalid service name ❌",
+    invalid: invalidServices.map(s => s.service)
+  });
+}
     const serviceNames = normalized.map(s => s.service);
 
     // 🔥 check duplicates in DB
