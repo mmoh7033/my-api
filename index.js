@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 
 const app = express();
+const ALLOWED_SERVICES = ["voice", "video", "hsd"];
+const ALLOWED_STATUS = ["active", "inactive"];
 
 // 🔥 FIX (IMPORTANT)
 app.use(cors({
@@ -65,12 +67,11 @@ app.post('/customer-services', checkApiKey, async (req, res) => {
 
     // 🔥 normalize input
     const normalized = servicesArray.map(s => ({
-      service: s.service.trim().toLowerCase(),
-      status: s.status.trim().toLowerCase(),
+      service: typeof s.service === "string" ? s.service.trim().toLowerCase() : "",
+      status: typeof s.status === "string" ? s.status.trim().toLowerCase() : "",
       date: s.date
     }));
 // 🔥 allowed services
-const ALLOWED_SERVICES = ["voice", "video", "hsd"];
 
 // 🔥 validate services
 const invalidServices = normalized.filter(
@@ -83,6 +84,22 @@ if (invalidServices.length > 0) {
     invalid: invalidServices.map(s => s.service)
   });
 }
+
+const invalidStatuses = normalized.filter(
+  s => !ALLOWED_STATUS.includes(s.status)
+);
+
+if (invalidStatuses.length > 0) {
+  return res.status(400).json({
+    message: "Invalid status ❌",
+    allowed: ALLOWED_STATUS,
+    invalid: invalidStatuses.map(s => ({
+      service: s.service,
+      status: s.status
+    }))
+  });
+}
+
     const serviceNames = normalized.map(s => s.service);
 
     // 🔥 check duplicates in DB
@@ -159,8 +176,6 @@ app.put('/customer-services/:service', checkApiKey, async (req, res) => {
     const clientId = req.headers['client-id'];
     const mobile = req.headers.mobile;
     const service = req.params.service.trim().toLowerCase();
-
-    const ALLOWED_STATUS = ["active", "inactive"];
 
     const status = req.body.status?.trim().toLowerCase();
 
