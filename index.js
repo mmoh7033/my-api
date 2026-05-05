@@ -159,25 +159,30 @@ app.put('/customer-services/:service', checkApiKey, async (req, res) => {
     const clientId = req.headers['client-id'];
     const mobile = req.headers.mobile;
     const service = req.params.service.trim().toLowerCase();
-    const status = req.body.status.trim().toLowerCase();
 
-    // 🔥 Step 1: find existing
-    const existing = await Service.findOne({ clientId, mobile, service });
+    const ALLOWED_STATUS = ["active", "inactive"];
 
-    if (!existing) {
+    const status = req.body.status?.trim().toLowerCase();
+
+    // 🔥 VALIDATION
+    if (!status || !ALLOWED_STATUS.includes(status)) {
+      return res.status(400).json({
+        message: "Invalid status ❌",
+        allowed: ALLOWED_STATUS
+      });
+    }
+
+    const result = await Service.findOneAndUpdate(
+      { clientId, mobile, service },
+      { status },
+      { new: true }
+    );
+
+    if (!result) {
       return res.status(404).json({ message: "Record not found ❌" });
     }
 
-    // 🔥 Step 2: compare
-    if (existing.status === status) {
-      return res.json({ message: "Already up to date ⚠️" });
-    }
-
-    // 🔥 Step 3: update
-    existing.status = status;
-    await existing.save();
-
-    res.json({ message: "updated successfully ✔", data: existing });
+    res.json({ message: "updated successfully ✔", data: result });
 
   } catch (err) {
     res.status(500).json({ error: err.message });
