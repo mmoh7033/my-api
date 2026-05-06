@@ -61,12 +61,12 @@ function checkApiKey(req, res, next) {
   const mobile = req.headers.mobile;
 
   if (!clientId) {
-    return res.status(401).json({ message: "Unauthorized ❌" });
+    return res.status(401).json({ message: "Unauthorized client-id ❌" });
   }
 
   // 👉 secure check (no info leak)
   if (!ALLOWED_CLIENTS.includes(clientId)) {
-    return res.status(403).json({ message: "Unauthorized ❌" });
+    return res.status(403).json({ message: "Unauthorized client-id  ❌" });
   }
 
   if (!mobile) {
