@@ -1,3 +1,4 @@
+const ALLOWED_CLIENTS = ["KHBAIB", "KHZAIMA", "service-pulse"];
 const swaggerUi = require("swagger-ui-express");
 const swaggerJSDoc = require("swagger-jsdoc");
 const express = require('express');
@@ -55,12 +56,21 @@ const serviceSchema = new mongoose.Schema({
 const Service = mongoose.model("Service", serviceSchema);
 
 // 🔐 API Key Middleware
+// 🔐 API Key Middleware
 function checkApiKey(req, res, next) {
   const clientId = req.headers['client-id'];
   const mobile = req.headers.mobile;
 
   if (!clientId) {
     return res.status(401).json({ message: "client-id missing ❌" });
+  }
+
+  // 👉 NEW: validate client-id
+  if (!ALLOWED_CLIENTS.includes(clientId)) {
+    return res.status(403).json({
+      message: "Unauthorized client-id ❌",
+      allowed: ALLOWED_CLIENTS
+    });
   }
 
   if (!mobile) {
