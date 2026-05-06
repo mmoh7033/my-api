@@ -56,31 +56,28 @@ const serviceSchema = new mongoose.Schema({
 const Service = mongoose.model("Service", serviceSchema);
 
 // 🔐 API Key Middleware
+const ALLOWED_CLIENTS = ["test123", "servicepulse", "abc123"];
+
+// 🔐 API Key Middleware
 function checkApiKey(req, res, next) {
   const clientId = req.headers['client-id'];
   const mobile = req.headers.mobile;
 
   if (!clientId) {
-    return res.status(401).json({ message: "client-id missing ❌" });
+    return res.status(401).json({ message: "Unauthorized ❌" });
   }
 
-  // 👉 NEW: validate client-id
+  // 👉 secure check (no info leak)
   if (!ALLOWED_CLIENTS.includes(clientId)) {
-    return res.status(403).json({
-      message: "Unauthorized client-id ❌",
-      allowed: ALLOWED_CLIENTS
-    });
+    return res.status(403).json({ message: "Unauthorized ❌" });
   }
 
   if (!mobile) {
-    return res.status(400).json({ message: "mobile header missing ❌" });
+    return res.status(400).json({ message: "Bad request ❌" });
   }
 
   if (!/^[0-9]{10}$/.test(mobile)) {
-    return res.status(400).json({
-      message: "Invalid mobile number ❌",
-      allowed: "10 digits only"
-    });
+    return res.status(400).json({ message: "Invalid input ❌" });
   }
 
   next();
