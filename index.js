@@ -56,7 +56,6 @@ const serviceSchema = new mongoose.Schema({
 const Service = mongoose.model("Service", serviceSchema);
 
 // 🔐 API Key Middleware
-// 🔐 API Key Middleware
 function checkApiKey(req, res, next) {
   const clientId = req.headers['client-id'];
   const mobile = req.headers.mobile;
