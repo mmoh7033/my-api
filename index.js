@@ -1,8 +1,28 @@
+const swaggerUi = require("swagger-ui-express");
+const swaggerJSDoc = require("swagger-jsdoc");
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 
 const app = express();
+// Swagger setup
+const swaggerOptions = {
+  definition: {
+    openapi: "3.0.0",
+    info: {
+      title: "ServicePulse API",
+      version: "1.0.0",
+    },
+    servers: [
+      {
+        url: "http://localhost:3000",
+      },
+    ],
+  },
+  apis: ["./index.js"],
+};
+
+const swaggerSpec = swaggerJSDoc(swaggerOptions);
 const ALLOWED_SERVICES = ["voice", "video", "hsd"];
 const ALLOWED_STATUS = ["active", "inactive"];
 
@@ -53,7 +73,48 @@ function checkApiKey(req, res, next) {
 
   next();
 }
-
+/**
+ * @swagger
+ * /customer-services:
+ *   post:
+ *     summary: Create customer services
+ *     tags: [Customer Services]
+ *     parameters:
+ *       - in: header
+ *         name: client-id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: header
+ *         name: mobile
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               customerServicesRequest:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     service:
+ *                       type: string
+ *                       example: voice
+ *                     status:
+ *                       type: string
+ *                       example: active
+ *                     date:
+ *                       type: string
+ *                       example: 2026-05-06
+ *     responses:
+ *       201:
+ *         description: Created successfully
+ */
 // 🟢 POST (CREATE)
 app.post('/customer-services', checkApiKey, async (req, res) => {
   try {
@@ -138,7 +199,23 @@ if (invalidStatuses.length > 0) {
     res.status(500).json({ error: err.message });
   }
 });
-
+/**
+ * @swagger
+ * /customer-services:
+ *   get:
+ *     summary: Get customer services
+ *     tags: [Customer Services]
+ *     parameters:
+ *       - in: header
+ *         name: client-id
+ *         required: true
+ *       - in: header
+ *         name: mobile
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Success
+ */
 // 🔵 GET (READ + CLEAN FORMAT)
 app.get('/customer-services', checkApiKey, async (req, res) => {
   try {
@@ -170,6 +247,39 @@ app.get('/customer-services', checkApiKey, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+/**
+ * @swagger
+ * /customer-services/{service}:
+ *   put:
+ *     summary: Update service status
+ *     tags: [Customer Services]
+ *     parameters:
+ *       - in: path
+ *         name: service
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: header
+ *         name: client-id
+ *         required: true
+ *       - in: header
+ *         name: mobile
+ *         required: true
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 example: active
+ *     responses:
+ *       200:
+ *         description: Updated successfully
+ */
+
 
 // 🟡 PUT (UPDATE)
 app.put('/customer-services/:service', checkApiKey, async (req, res) => {
@@ -204,7 +314,23 @@ app.put('/customer-services/:service', checkApiKey, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-  
+ /**
+ * @swagger
+ * /customer-services:
+ *   delete:
+ *     summary: Delete services
+ *     tags: [Customer Services]
+ *     parameters:
+ *       - in: header
+ *         name: client-id
+ *         required: true
+ *       - in: header
+ *         name: mobile
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Deleted successfully
+ */ 
 app.delete('/customer-services', checkApiKey, async (req, res) => {
   try {
     const clientId = req.headers['client-id'];
@@ -256,6 +382,7 @@ app.delete('/customer-services', checkApiKey, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // 🚀 SERVER START
 app.listen(3000, () => {
   console.log("Server running on port 3000 🔥");
