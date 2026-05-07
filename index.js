@@ -1,4 +1,4 @@
-const ALLOWED_CLIENTS = ["KHBAIB", "KHZAIMA", "service-pulse"];
+const ALLOWED_CLIENTS = ["KHBAIB", "KHZAIMA", "MMM-KHU123", "service-pulse"];
 const swaggerUi = require("swagger-ui-express");
 const swaggerJSDoc = require("swagger-jsdoc");
 const express = require('express');
